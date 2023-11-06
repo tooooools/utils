@@ -1,0 +1,33 @@
+{
+  "name": "@tooooools/utils",
+  "version": "0.0.0",
+  "description": "Various Toools™ utils",
+  "type": "module",
+  "author": "Arnaud Juracek",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tooooools/utils.git"
+  },
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./": "./src/"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-config-standard-jsx": "^11.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.6.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "ghp": "^1.7.0"
+  },
+  "dependencies": {
+    "eases": "^1.0.8",
+    "missing-math": "^3.4.0",
+    "transformation-matrix": "^2.15.0"
+  }
+}
