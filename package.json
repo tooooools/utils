@@ -5,6 +5,9 @@
   "type": "module",
   "author": "Arnaud Juracek",
   "license": "MIT",
+  "scripts": {
+    "postversion": "git push && git push --tags && npm publish --access public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tooooools/utils.git"
