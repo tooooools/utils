@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "build": "vite build",
+    "build:watch": "vite build --mode dev",
     "preversion": "npm run build && git add -f dist",
     "postversion": "git push && git push --tags && npm publish --access public"
   },
