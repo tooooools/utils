@@ -6,6 +6,7 @@
     interpolations: {
       '.css-selector': {
         stagger: '100ms', // stagger|span
+        visible: { from: '1s', to: '2s' },
         property1: {
           initial: 0
           from: 0,
@@ -102,6 +103,17 @@ export default class SVGTimeline {
         // Iterate all defined interpolations for this selector
         for (let attr in this.props.interpolations[selector]) {
           if (attr === 'stagger') continue
+          if (attr === 'span') continue
+
+          if (attr === 'visible') {
+            const { from, to } = this.props.interpolations[selector][attr]
+            const t0 = this.toFrames(from)
+            const t1 = this.toFrames(to ?? this.length)
+            const visible = frameIndex >= t0 && frameIndex < t1
+            el.setAttribute('visibility', visible ? 'visible' : 'hidden')
+            continue
+          }
+
           const {
             initial,
             from,
