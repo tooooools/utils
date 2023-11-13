@@ -134,7 +134,7 @@ export default class SVGTimeline {
 
           // Handle SVG transformations
           if (SUPPORTED_TRANSFORM_ATTRIBUTES.includes(attr)) {
-            const initialValue = el.getAttribute('transform') ?? 'translate(0,0)'
+            const initialValue = el.getAttribute('transform') || 'translate(0,0)'
 
             const initialMatrix = /^matrix/i.test(initialValue)
               ? Transform.fromString(initialValue)
