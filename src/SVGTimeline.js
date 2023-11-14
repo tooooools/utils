@@ -179,10 +179,10 @@ export default class SVGTimeline {
           if (attr === 'd') v = toPathData(v)
           el.setAttribute(attr, v)
         }
-
-        // Increment delay for the next element matching the current selector
-        staggerDelay += staggerAmt
       }
+
+      // Increment delay for the next element matching the current selector
+      staggerDelay += staggerAmt
     }
   }
 
