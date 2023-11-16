@@ -76,7 +76,7 @@ export default class SVGTimeline {
   // Convert '1s', '10ms', 10 to a number of frames based on a frame rate
   toFrames (duration = 0) {
     const [, value, unit] = (/([-+]?[0-9.]+)([a-z%]*)/.exec(duration) ?? [parseFloat(duration)])
-    if (!unit) return value
+    if (!unit) return +value
 
     // Handle 'ms' and 's', 's' being the default
     let factor = 1
