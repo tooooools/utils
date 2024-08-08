@@ -1,39 +1,43 @@
 /**
   new Timeline({
-    duration: <DURATION>,
+    duration: <duration>,
     frameRate: 60,
-    loop: true|false,
+    loop: <BOOLEAN>,
     interpolations: {
       '.css-selector': {
-        stagger|span: <DURATION>,
-        visible: { from: <DURATION>, to: <DURATION> },
+        stagger|span: <duration>,
+        visible: { from: <duration>, to: <duration> },
         property1: {
-          initial: 0
-          from: 0,
-          to: 100,
-          delay: <DURATION>,
-          duration: <DURATION>,
+          initial: <lerpable>
+          from: <lerpable>,
+          to: <lerpable>,
+          delay: <duration>,
+          duration: <duration>,
           easing: 'linear' // See https://github.com/mattdesl/eases
         },
         property2: {…},
       },
       'svg > path': {
         d: {
-          from: [[0, 0], [0, 1], [0, 2]]
-          to: [[0, 0, [1, 1], [0, 2]]]
+          from: [[<lerpable>, <lerpable>], [<lerpable>, <lerpable>], [<lerpable>, <lerpable>]]
+          to: [[<lerpable>, <lerpable>, [<lerpable>, <lerpable>], [<lerpable>, <lerpable>]]]
         }
       }
     }
   })
 
-  <DURATION>
-    60 (frames)
+  <duration>
+    <number> (frames)
     '1s'
     '1000ms'
     'calc(60 * 2)'
     'calc(1s * 2)'
     'calc(1000ms / 2 + 0.5s)'
     'calc(calc(1000ms / 2) * 2)'
+
+  <lerpable>
+    <number>
+    '100%'
  */
 
 import eases from 'eases'
@@ -49,7 +53,19 @@ const SUPPORTED_TRANSFORM_ATTRIBUTES = [
   'scaleY'
 ]
 
-const lerpArray = (a, b, t) => Array.isArray(a) ? a.map((v, i) => lerpArray(v, b[i], t)) : lerp(a, b, t)
+const lerpArray = (a, b, t) => Array.isArray(a) ? a.map((v, i) => lerpArray(v, b[i], t)) : smartLerp(a, b, t)
+
+// Lerp values, handling strings and conserving unit if possible
+function smartLerp (a, b, t) {
+  const units = [
+    (/[-+]?[0-9.]+([a-z%]*)/.exec(a) ?? [])[1],
+    (/[-+]?[0-9.]+([a-z%]*)/.exec(b) ?? [])[1]
+  ]
+
+  return (units[0] ?? units[1])
+    ? lerp(parseFloat(a), parseFloat(b), t) + (units[0] ?? units[1])
+    : lerp(parseFloat(a), parseFloat(b), t)
+}
 
 function toPathData (arr, { decimals = 3, close = true } = {}) {
   let d = ''
@@ -100,7 +116,7 @@ export default class SVGTimeline {
 
   // Convert '1s', '10ms', 10 to a number of frames based on a frame rate
   toFrames (duration = 0) {
-    const [, value, unit] = (/([-+]?[0-9.]+)([a-z%]*)/.exec(duration) ?? [parseFloat(duration)])
+    const [, value, unit] = (/([-+]?[0-9.]+)([a-z%]*)/.exec(duration) ?? [null, parseFloat(duration)])
     if (!unit) return +value
 
     // Handle 'ms' and 's', 's' being the default
@@ -168,6 +184,14 @@ export default class SVGTimeline {
             const { translate, scale, rotation } = Transform.decomposeTSR(
               initialMatrix ?? Transform.translate(0)
             )
+
+            // Resolve % unit in transformations
+            if (String(v).endsWith('%')) {
+              el.__bbox ??= el.getBBox()
+              v = (parseFloat(v) / 100)
+              if (attr.endsWith('X')) v *= el.__bbox.width
+              if (attr.endsWith('Y')) v *= el.__bbox.height
+            }
 
             switch (attr) {
               case 'translateX':
