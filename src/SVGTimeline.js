@@ -1,18 +1,19 @@
 /**
   new Timeline({
-    duration: <DURATION>,
+    duration: <duration>,
     frameRate: 60,
     loop: true|false,
     interpolations: {
       '.css-selector': {
-        stagger|span: <DURATION>,
-        visible: { from: <DURATION>, to: <DURATION> },
+        stagger|span: <duration>,
+        transformOrigin: [0, 0], // If set, will override any existing SVGElement[transform] attribute
+        visible: { from: <duration>, to: <duration> },
         property1: {
           initial: 0
           from: 0,
           to: 100,
-          delay: <DURATION>,
-          duration: <DURATION>,
+          delay: <duration>,
+          duration: <duration>,
           easing: 'linear' // See https://github.com/mattdesl/eases
         },
         property2: {…},
@@ -26,7 +27,7 @@
     }
   })
 
-  <DURATION>
+  <duration>
     60 (frames)
     '1s'
     '1000ms'
@@ -40,6 +41,7 @@ import eases from 'eases'
 import * as Transform from 'transformation-matrix'
 import { clamp, lerp, radians } from 'missing-math'
 
+const RESERVED = ['stagger', 'span', 'transformOrigin']
 const SUPPORTED_TRANSFORM_ATTRIBUTES = [
   'translateX',
   'translateY',
@@ -127,8 +129,7 @@ export default class SVGTimeline {
       for (const el of els) {
         // Iterate all defined interpolations for this selector
         for (let attr in this.props.interpolations[selector]) {
-          if (attr === 'stagger') continue
-          if (attr === 'span') continue
+          if (RESERVED.includes(attr)) continue
 
           if (attr === 'visible') {
             const { from, to } = this.props.interpolations[selector][attr]
@@ -159,8 +160,13 @@ export default class SVGTimeline {
 
           // Handle SVG transformations
           if (SUPPORTED_TRANSFORM_ATTRIBUTES.includes(attr)) {
-            const initialValue = el.getAttribute('transform') || 'translate(0,0)'
+            const transformOrigin = this.props.interpolations[selector].transformOrigin ?? [0, 0]
 
+            // Override [transform] attribute if a transformOrigin is defined to
+            // avoid disrupting the transformation idempotency
+            const initialValue = this.props.interpolations[selector].transformOrigin
+              ? 'translate(0,0)'
+              : el.getAttribute('transform') ?? 'translate(0, 0)'
             const initialMatrix = /^matrix/i.test(initialValue)
               ? Transform.fromString(initialValue)
               : Transform.fromDefinition(Transform.fromTransformAttribute(initialValue))[0]
@@ -193,8 +199,8 @@ export default class SVGTimeline {
 
             const matrix = Transform.compose(
               Transform.translate(translate.tx ?? 0, translate.ty ?? 0),
-              Transform.scale(scale.sx ?? 1, scale.sy ?? 1),
-              Transform.rotate(rotation.angle ?? 0)
+              Transform.scale(scale.sx ?? 1, scale.sy ?? 1, transformOrigin[0], transformOrigin[1]),
+              Transform.rotate(rotation.angle ?? 0, transformOrigin[0], transformOrigin[1])
             )
 
             attr = 'transform'
