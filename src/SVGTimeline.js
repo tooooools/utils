@@ -1,27 +1,29 @@
 /**
   new Timeline({
     duration: <duration>,
-    frameRate: 60,
-    loop: true|false,
+    frameRate: <number>,
+    loop: <boolean>,
     interpolations: {
       '.css-selector': {
         stagger|span: <duration>,
-        transformOrigin: [0, 0], // If set, will override any existing SVGElement[transform] attribute
+        transformOrigin: [<number>, <number>], // If set, will override any existing SVGElement[transform] attribute
         visible: { from: <duration>, to: <duration> },
         property1: {
-          initial: 0
-          from: 0,
-          to: 100,
+          initial: <number>
+          from: <number>,
+          to: <number>,
           delay: <duration>,
           duration: <duration>,
-          easing: 'linear' // See https://github.com/mattdesl/eases
+          easing: <string>, // See https://github.com/mattdesl/eases
+          loop: <boolean>|<number>,
+          pingpong: <boolean>
         },
         property2: {…},
       },
       'svg > path': {
         d: {
-          from: [[0, 0], [0, 1], [0, 2]]
-          to: [[0, 0, [1, 1], [0, 2]]]
+          from: [[<number>, <number>], [<number>, <number>], [<number>, <number>]]
+          to: [[<number>, <number>, [<number>, <number>], [<number>, <number>]]]
         }
       }
     }
@@ -39,7 +41,7 @@
 
 import eases from 'eases'
 import * as Transform from 'transformation-matrix'
-import { clamp, lerp, radians } from 'missing-math'
+import { clamp, lerp, radians, wrap } from 'missing-math'
 
 const RESERVED = ['stagger', 'span', 'transformOrigin']
 const SUPPORTED_TRANSFORM_ATTRIBUTES = [
@@ -144,16 +146,27 @@ export default class SVGTimeline {
             initial,
             from,
             to,
-            delay,
-            duration,
-            easing
+            delay = 0,
+            duration = this.length,
+            easing = 'linear',
+            loop = false,
+            pingpong = false
           } = this.props.interpolations[selector][attr]
 
-          const d = this.calc(duration ?? this.length)
-          const dl = this.calc(delay ?? 0) + staggerDelay
-          const t = clamp((frameIndex - dl) / d, 0, 1)
+          const d = this.calc(duration)
+          const dl = this.calc(delay) + staggerDelay
+          const t = (() => {
+            const n = (frameIndex - dl) / d
+            if (loop) {
+              const iters = typeof loop === 'number' ? loop : Number.POSITIVE_INFINITY
+              const t = wrap(clamp(n, 0, iters) - 1e-10, 0, 1)
+              return pingpong ? Math.sin(t * Math.PI) : t
+            }
 
-          const ease = eases[easing ?? 'linear']
+            return clamp(n, 0, 1)
+          })()
+
+          const ease = eases[easing]
           if (!ease) throw new Error(`easing function '${easing}' does not exist. See https://github.com/mattdesl/eases for available functions.`)
 
           let v = lerpArray(frameIndex < dl && initial !== undefined ? initial : from, to, ease(t))
