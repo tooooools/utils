@@ -1,18 +1,18 @@
 /**
   new Timeline({
-    duration: '1s'|'1000ms'|60,
+    duration: <DURATION>,
     frameRate: 60,
     loop: true|false,
     interpolations: {
       '.css-selector': {
-        stagger: '100ms', // stagger|span
-        visible: { from: '1s', to: '2s' },
+        stagger|span: <DURATION>,
+        visible: { from: <DURATION>, to: <DURATION> },
         property1: {
           initial: 0
           from: 0,
           to: 100,
-          delay: '1s',
-          duration: '3000ms',
+          delay: <DURATION>,
+          duration: <DURATION>,
           easing: 'linear' // See https://github.com/mattdesl/eases
         },
         property2: {…},
@@ -25,6 +25,15 @@
       }
     }
   })
+
+  <DURATION>
+    60 (frames)
+    '1s'
+    '1000ms'
+    'calc(60 * 2)'
+    'calc(1s * 2)'
+    'calc(1000ms / 2 + 0.5s)'
+    'calc(calc(1000ms / 2) * 2)'
  */
 
 import eases from 'eases'
@@ -73,6 +82,22 @@ export default class SVGTimeline {
   set loop (s) { this.props.loop = s }
   get loop () { return this.props.loop }
 
+  // Convert 'calc(1s * 2)', 'calc(1000ms + 1s)', '1s', '10ms', 10 to a number
+  // of frames based on a frame rate
+  calc (formula) {
+    if (typeof formula !== 'string') return formula
+    if (formula === '') return formula
+    if (!formula.startsWith('calc(')) return this.toFrames(formula)
+
+    formula = formula.match(/^calc\((.*)\)/)[1]
+    // Interpret nested calc() as parenthesis
+    formula = formula.replaceAll(/calc/g, '')
+
+    const values = formula.match(/((?:\d*[.])?\d+\w+)?/g)
+    for (const value of values) formula = formula.replace(value, this.calc(value))
+    return eval(formula) /* eslint-disable-line no-eval */
+  }
+
   // Convert '1s', '10ms', 10 to a number of frames based on a frame rate
   toFrames (duration = 0) {
     const [, value, unit] = (/([-+]?[0-9.]+)([a-z%]*)/.exec(duration) ?? [parseFloat(duration)])
@@ -95,8 +120,8 @@ export default class SVGTimeline {
       // Prepare stagger
       let staggerDelay = 0
       const staggerAmt = this.props.interpolations[selector].span
-        ? this.toFrames(this.props.interpolations[selector].span ?? 0) / els.length
-        : this.toFrames(this.props.interpolations[selector].stagger ?? 0)
+        ? this.calc(this.props.interpolations[selector].span ?? 0) / els.length
+        : this.calc(this.props.interpolations[selector].stagger ?? 0)
 
       // Iterate all elements matching current selector
       for (const el of els) {
@@ -107,8 +132,8 @@ export default class SVGTimeline {
 
           if (attr === 'visible') {
             const { from, to } = this.props.interpolations[selector][attr]
-            const t0 = this.toFrames(from)
-            const t1 = this.toFrames(to ?? this.length)
+            const t0 = this.calc(from)
+            const t1 = this.calc(to ?? this.length)
             const visible = frameIndex >= t0 && frameIndex < t1
             el.setAttribute('visibility', visible ? 'visible' : 'hidden')
             continue
@@ -123,8 +148,8 @@ export default class SVGTimeline {
             easing
           } = this.props.interpolations[selector][attr]
 
-          const d = this.toFrames(duration ?? this.length)
-          const dl = this.toFrames(delay ?? 0) + staggerDelay
+          const d = this.calc(duration ?? this.length)
+          const dl = this.calc(delay ?? 0) + staggerDelay
           const t = clamp((frameIndex - dl) / d, 0, 1)
 
           const ease = eases[easing ?? 'linear']
